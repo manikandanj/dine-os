@@ -18,7 +18,7 @@ claiming any requested action is already acknowledged. If inputs are stale/unkno
 honor all commitments, use request_coordinator_update with a targeted question; preserve the active
 sequence. For only an alternative, use propose_diner_alternative. Never invent an acknowledgment.
 All durations are synthetic food-ready estimates relative to the paused scenario checkpoint, not a
-prediction of time to leave. Speak in a warm, concise restaurant voice. Copy the state version exactly.'''
+prediction of time to leave. Keep rationale under 220 characters and diner_message under 170 characters, complete sentences. Speak in a warm, concise restaurant voice. Copy the state version exactly.'''
 
 async def run_planner(api_key,model,state):
     candidates=feasible_candidates(state)

@@ -6,7 +6,7 @@ from .models import Command
 class Engine:
     def __init__(self,repo,key,model,runner):
         self.repo=repo;self.key=key;self.model=model;self.runner=runner
-        self.wake=asyncio.Event();self.needs_plan=False;self.stopped=False
+        self.wake=asyncio.Event();self.needs_plan=repo.snapshot()['planner']['status']=='thinking';self.stopped=False
     def request(self):
         self.needs_plan=True;self.wake.set()
     async def cycle(self):
@@ -29,7 +29,7 @@ class Engine:
                     if pending['kind']=='order':self.needs_plan=True
                 except Conflict:pass
                 s=self.repo.snapshot()
-            if not self.needs_plan:continue
+            if not self.needs_plan and s['planner']['status']!='queued':continue
             if any(a['status']=='requested' for a in s['actions']):continue
             self.needs_plan=False
             if s['paused']:

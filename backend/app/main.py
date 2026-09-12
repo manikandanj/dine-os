@@ -81,7 +81,9 @@ def create_app(database_path=None,api_key=None,planner_runner=None,autostart=Tru
     def generation(g:Generation):return repo.generation(g)
     @app.post('/api/commands')
     def command(cmd:Command):
+        before=repo.snapshot()['revision']
         result=repo.command(cmd)
+        if result['revision']<=before:return result
         if cmd.kind in ('report','replan','progress') or cmd.kind=='pause' and not result['paused'] or cmd.kind=='intent' and cmd.payload.get('action')=='confirm':engine.request()
         if cmd.kind=='reset':engine.needs_plan=False
         return result

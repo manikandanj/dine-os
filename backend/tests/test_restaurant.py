@@ -104,6 +104,7 @@ def test_pause_and_guarded_one_decision_override(repo):
     with pytest.raises(ValueError):do(repo,'override',dict(sequence=['A','B','C'],reason='unsafe'))
     r=do(repo,'override',dict(sequence=['C','B','A'],reason='Coordinator single decision'))
     done=ack(repo,r['actions'][-1]);assert done['paused'];assert done['active_sequence']==['C','B','A']
+    assert done['decision']['model']=='coordinator';assert done['decision']['before']==['A','B','C'];assert done['decision']['status']=='acknowledged'
 
 def test_stale_planner_and_ack_rejected(repo):
     report(repo);old=repo.snapshot();do(repo,'pause',{'paused':True})
@@ -161,3 +162,60 @@ def test_api_config_and_reconnect_restore_authoritative_context(tmp_path):
         assert 'terms_hash' in str(cfg['tools']);assert 'Alex' in cfg['instructions'];assert 'API_KEY' not in str(cfg)
         assert client.post('/api/realtime/calls',headers={'Content-Type':'application/sdp'},content='v=0').status_code==503
         assert client.post('/api/commands',headers={'Origin':'https://untrusted.example'},json={}).status_code==403
+
+def test_planner_replay_has_one_requested_effect(repo):
+    report(repo);s=repo.snapshot();p=plan(s)
+    first=repo.apply_plan(s,p,'propose_preparation_sequence','test','one_response')
+    again=Repository(repo.path).apply_plan(s,p,'propose_preparation_sequence','test','one_response')
+    assert first==again;assert len(repo.snapshot()['actions'])==1
+
+def test_started_parallel_work_is_not_falsely_serialized():
+    s=seed();s['tickets'][0]['status']='started';s['tickets'][1]['status']='started';s['capacity']['value']=1
+    with pytest.raises(ValueError):validate_sequence(s,['C','B','A'])
+
+def test_changed_spoken_terms_require_renewed_review(repo):
+    o=review(repo,'mushroom')
+    with pytest.raises(Conflict):diner(repo,'confirm',offer_id=o['id'],offer_revision=o['revision'],terms_hash=o['terms_hash'],item_ids=['chicken'])
+
+def test_relevant_event_work_is_durable_across_restart(repo):
+    report(repo);restored=Repository(repo.path).snapshot()
+    assert restored['planner']['status']=='queued';assert restored['capacity']['value']==1
+
+def test_background_event_model_validator_and_simulator_ack_integrate(tmp_path):
+    import time
+    calls=[]
+    async def fake_runner(key,model,s):
+        calls.append(s['state_version'])
+        sequence=['C','B','A']+(['D'] if s['order'] and s['order']['status']=='acknowledged' else [])
+        return plan(s,sequence=sequence,alternative=None if s['order'] else 'mushroom'),'propose_preparation_sequence','synthetic_'+str(len(calls))
+    app=create_app(tmp_path/'engine.sqlite3',api_key='test-only',planner_runner=fake_runner)
+    def until(client,predicate):
+        for _ in range(70):
+            s=client.get('/api/state').json()
+            if predicate(s):return s
+            time.sleep(.05)
+        raise AssertionError('background loop did not complete: '+str(s['planner']))
+    with TestClient(app) as client:
+        r=app.state.repo
+        c=cmd(r,'report',dict(capacity=1,source_id='cook',source_kind='human_report',observed_at=now(),simulated=True,note='one slot'))
+        assert client.post('/api/commands',json=c.model_dump()).status_code==200
+        s=until(client,lambda s:s['active_sequence']==['C','B','A'])
+        assert s['commitments_met']==3
+        o=review(r,'mushroom');c=cmd(r,'intent',confirmation(o),source='diner')
+        first=client.post('/api/commands',json=c.model_dump()).json()
+        second=client.post('/api/commands',json=c.model_dump()).json();assert first==second
+        s=until(client,lambda s:s['order']['status']=='acknowledged' and s['planner']['status']=='complete')
+        assert s['commitments_met']==4;assert len(s['actions'])==2;assert len(calls)==2
+
+def test_failed_order_can_be_reviewed_again_with_new_explicit_consent(repo):
+    o=review(repo,'mushroom');r=do(repo,'intent',confirmation(o),source='diner');ack(repo,r['actions'][-1],False)
+    new=diner(repo,'review',item_ids=['mushroom'])['offer'];assert new['id']!=o['id']
+    assert repo.snapshot()['order'] is None
+    r=do(repo,'intent',confirmation(new),source='diner');assert ack(repo,r['actions'][-1])['order']['status']=='acknowledged'
+
+
+def test_draft_modifiers_sync_in_authoritative_surface_without_allocating(repo):
+    s=diner(repo,'detail',item_ids=['chicken'],modifiers=['sauce_on_side'])
+    assert s['surface']['modifiers']==['sauce_on_side'];assert s['state_version']==0
+    assert not s['actions'];assert not s['order']
+    with pytest.raises(ValueError):diner(repo,'detail',item_ids=['soup'],modifiers=['sauce_on_side'])

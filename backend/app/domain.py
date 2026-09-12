@@ -53,6 +53,8 @@ def schedule(state, sequence=None, extra=None):
     # Started work is immovable and occupies the first available slot.
     ids.sort(key=lambda i: tickets[i]['status']!='started')
     cap=state['capacity']['value'] if capacity_fresh(state) else 0
+    # A capacity report cannot serialize work that has already started in parallel.
+    if cap is not None and sum(t['station']=='grill' and t['status']=='started' for t in tickets.values())>cap:cap=0
     slots={'grill':[0]*(cap or 0),'pass':[0]}
     result=[]
     for i in ids:

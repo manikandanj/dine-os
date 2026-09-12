@@ -98,7 +98,9 @@ class Repository:
             elif cmd.kind=='override':
                 if any(a['status']=='requested' and a['kind']=='sequence' for a in s['actions']):raise Conflict('Resolve the outstanding sequence acknowledgment first.')
                 timeline=validate_sequence(s,p.sequence)
+                before=list(s['active_sequence'])
                 self.bump(s); self.invalidate(s)
+                s['decision']=dict(before=before,after=p.sequence,timeline=timeline,status='requested',rationale=p.reason,alternative_item_id=None,diner_message='',coordinator_question=None,model='coordinator',response_id=cmd.command_id,decided_at=now())
                 self.request_action(s,'sequence',sequence=p.sequence,rationale=p.reason,actor='coordinator',timeline=timeline)
             elif cmd.kind=='ack_mode':
                 self.bump(s);s['ack_mode']=p.mode
@@ -124,6 +126,9 @@ class Repository:
             elif cmd.kind=='replan':
                 self.bump(s,False)
                 self.event(s,'replan_requested','Coordinator requested a fresh decision.','coordinator')
+            if cmd.kind in ('report','replan','progress') or (cmd.kind=='pause' and not s['paused']) or (cmd.kind=='intent' and cmd.payload.get('action')=='confirm'):
+                s['planner'].update(status='queued',message='A service event is waiting for a decision.')
+            if cmd.kind=='pause' and s['paused']:s['planner'].update(status='paused',message='Paused by coordinator')
             self.save(c,s); result=decorated(s);self.remember(c,cmd.command_id,identity,result)
             return result
 
@@ -134,6 +139,7 @@ class Repository:
         if mode=='confirm':
             offer=s['offer']
             if not offer or offer['status']!='pending' or (p.offer_id,p.offer_revision,p.terms_hash)!=(offer['id'],offer['revision'],offer['terms_hash']):raise Conflict('No matching active offer. Review the exact dish, modifiers, price and timing again.')
+            if (p.item_ids and p.item_ids != [offer['terms']['item_id']]) or (p.modifiers and p.modifiers != offer['terms']['modifiers']):raise Conflict('Spoken confirmation changed the reviewed dish or modifiers. Review the new terms first.')
             if offer['state_version']!=s['state_version']:raise Conflict('The kitchen changed after this offer. Please review again.')
             if s['order']:raise Conflict('This diner already has an order. Changes require staff assistance; the existing meal is preserved.')
             item=next(i for i in s['menu'] if i['id']==offer['terms']['item_id'])
@@ -164,6 +170,7 @@ class Repository:
             if s['order']:raise Conflict('A new time preference cannot silently change the confirmed commitment. Ask the coordinator.')
             s['diner']['ready_within_minutes']=p.ready_within_minutes;s['state_version']+=1
         if mode=='review':
+            if s['order'] and s['order']['status']=='failed':s['order']=None
             if s['diner']['party_size']!=1:
                 s['surface']=dict(mode='clarify',item_ids=p.item_ids,message='Just you today? Please confirm a party of one before reviewing your order.');return
             if s['order']:
@@ -181,6 +188,10 @@ class Repository:
         elif mode=='clarify':s['surface']=dict(mode='clarify',item_ids=p.item_ids,message=p.question or 'Do you mean food ready, or time to leave?')
         elif mode=='preference':s['surface']=dict(mode='detail',item_ids=p.item_ids or ['chicken'],message='We’ll look for food ready within your preference. Estimates are based on the current kitchen plan.')
         else:s['surface']=dict(mode=mode,item_ids=p.item_ids,message='A closer look.' if mode=='detail' else 'Good choices, side by side.')
+        if mode in ('detail','preference'):
+            selected=next(i for i in s['menu'] if i['id']==s['surface']['item_ids'][0])
+            if any(m not in selected['modifiers'] for m in p.modifiers):raise ValueError('That modifier is not supported for this dish.')
+            s['surface']['modifiers']=p.modifiers
 
     def request_action(self,s,kind,**data):
         action=dict(id='act_'+uuid4().hex,kind=kind,status='requested',requested_at=now(),acknowledged_at=None,requested_state_version=s['state_version'],epoch=s['epoch'],**data)
@@ -200,6 +211,7 @@ class Repository:
         else:failure='Kitchen simulator rejected this request.'
         self.bump(s);self.invalidate(s)
         a['status']='failed' if failure else 'acknowledged';a['acknowledged_at']=now();a['failure']=failure
+        if a['kind']=='sequence' and s['decision']:s['decision']['status']=a['status']
         if not failure:
             if a['kind']=='sequence':
                 s['active_sequence']=a['sequence']
@@ -210,6 +222,7 @@ class Repository:
         elif a['kind']=='order':
             next(i for i in s['menu'] if i['id']==a['ticket']['item_id'])['stock']+=1
             s['order']['status']='failed';s['surface']=dict(mode='status',item_ids=[a['terms']['item_id']],message='The kitchen could not acknowledge your order. Your allocation was released; the coordinator has been alerted.')
+        if a['kind']=='order' and not failure:s['planner'].update(status='queued',message='Checking the newly acknowledged order.')
         if failure:s['exceptions'].append(dict(id=a['id'],message=failure,source_kind='recorded'))
         self.event(s,'action_'+a['status'],failure or ('New preparation sequence is active.' if a['kind']=='sequence' else 'Order acknowledged by the kitchen.'),'kitchen_simulator','recorded',True,action_id=a['id'])
         self.refresh_exceptions(s)
@@ -227,6 +240,10 @@ class Repository:
     def apply_plan(self,observed,proposal,tool_name,model,response_id):
         with self.lock,self.connect() as c:
             c.execute('BEGIN IMMEDIATE');s=self.read(c)
+            plan_id='plan_'+response_id
+            identity=digest({'epoch':observed['epoch'],'version':observed['state_version'],'proposal':proposal.model_dump(),'tool':tool_name,'model':model})
+            replay=self.replay(c,plan_id,identity)
+            if replay:return replay
             if s['epoch']!=observed['epoch'] or s['state_version']!=observed['state_version'] or proposal.observed_state_version!=s['state_version']:raise Conflict('Planner result became stale. Reread and replan.')
             if s['paused']:raise Conflict('Autonomy is paused at the server boundary.')
             if any(a['kind']=='sequence' and a['status']=='requested' for a in s['actions']):raise Conflict('A sequence is already awaiting acknowledgment.')
@@ -238,7 +255,8 @@ class Repository:
                 if item['stock']<1 or not item['fits_preference']:raise ValueError('Planner alternative is unavailable or misses the diner preference.')
             self.bump(s,operational=is_sequence and proposal.sequence!=before)
             if is_sequence and proposal.sequence!=before:self.invalidate(s)
-            s['decision']=dict(**proposal.model_dump(),tool=tool_name,model=model,response_id=response_id,before=before,after=proposal.sequence if is_sequence else before,timeline=timeline,status='requested' if is_sequence and proposal.sequence!=before else 'no_action',decided_at=now())
+            new_decision=dict(**proposal.model_dump(),tool=tool_name,model=model,response_id=response_id,before=before,after=proposal.sequence if is_sequence else before,timeline=timeline,status='requested' if is_sequence and proposal.sequence!=before else 'no_action',decided_at=now())
+            if not s['decision'] or is_sequence and proposal.sequence!=before or proposal.coordinator_question:s['decision']=new_decision
             self.event(s,'planner_validated',proposal.rationale,'restaurant_agent','derived',False,model=model,response_id=response_id)
             if is_sequence and proposal.sequence!=before:self.request_action(s,'sequence',sequence=proposal.sequence,rationale=proposal.rationale,actor='agent',timeline=timeline)
             if proposal.coordinator_question:
@@ -249,4 +267,4 @@ class Repository:
                 selected=s['surface']['item_ids'][0] if s['surface']['item_ids'] else 'chicken'
                 s['surface']=dict(mode='compare',item_ids=list(dict.fromkeys([selected,proposal.alternative_item_id])),message=proposal.diner_message)
             s['planner']=dict(status='complete',model=model,message='Decision validated',request_id=response_id)
-            self.save(c,s);return decorated(s)
+            self.save(c,s);result=decorated(s);self.remember(c,plan_id,identity,result);return result
