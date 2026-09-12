@@ -13,4 +13,5 @@ __pycache__/
 *.log
 .run/
 recordings/
+.internal/
 .DS_Store
