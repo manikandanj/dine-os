@@ -6,7 +6,7 @@
 
 **An AI restaurant agent that connects what guests want with what the kitchen can deliver.**
 
-[The idea](#the-restaurant-is-the-interface) · [The experience](#one-guest-one-choice-the-whole-room-in-context) · [The engineering](#how-it-works) · [What's real](#built-today-designed-to-go-further) · [Run it](docs/RUNBOOK.md)
+[The idea](#the-restaurant-is-the-interface) · [For the service team](#a-service-partner-for-the-people-running-the-room) · [The experience](#one-guest-one-choice-the-whole-room-in-context) · [The engineering](#how-it-works) · [What's next](#built-today-designed-to-go-further) · [Run it](docs/RUNBOOK.md)
 
 </div>
 
@@ -46,13 +46,25 @@ Preparation decisions grounded in capacity and existing tickets, with an explici
 </td>
 <td width="33%" valign="top">
 
-### For the coordinator
+### For the service team
 
-A shared operational view, a concise decision rationale, and controls to correct facts, pause, or override.
+A shared view of commitments and kitchen conditions, a concise decision rationale, and controls to correct facts, pause, or override.
 
 </td>
 </tr>
 </table>
+
+## A service partner for the people running the room
+
+For a **shift manager or expediter**, the hard part is keeping the floor and kitchen working from the same information. Which table needs attention? What can the kitchen still deliver? If a station slows down, which promises are affected?
+
+The prototype gives that person a shared operational view and a supervised planning loop. With live integrations and broader service coverage, the opportunity extends across the shift:
+
+- **Anticipate the next problem.** Surface commitments at risk and the affected tables, with a proposed response while the team still has options.
+- **Coordinate the recovery.** Help sequence preparation and pace courses across tables, keep guest-facing estimates aligned, and escalate decisions that need a person's judgment.
+- **Learn from each service.** Give managers a review of recurring bottlenecks, missed commitments, and interventions to inform the next shift.
+
+The ambition is fewer coordination gaps and more attention available for hospitality. The manager sets priorities; the agent carries context between the people and systems doing the work. Broader course pacing and service analytics are future capabilities.
 
 ## One guest. One choice. The whole room in context.
 
@@ -81,7 +93,9 @@ Keeping an already-safe sequence is a valid decision. When no plan can honor the
 
 Two AI roles share one authoritative restaurant state. **Mira handles the guest interaction. DineOS handles restaurant planning.** Deterministic code governs what either may change.
 
-<img src="docs/assets/architecture.svg" alt="Realtime voice and diner taps enter a command boundary backed by SQLite. Events trigger the Responses planning agent. Typed proposals pass deterministic validation, reach the kitchen simulator, and return acknowledged or failed results to shared state and all interfaces." width="100%">
+<img src="docs/assets/architecture.svg" alt="Guest interaction, staff controls, and kitchen facts meet at one command and state layer. Events wake the DineOS planner. Its proposals pass validation; offers and questions return to state, while sequence and order requests reach the kitchen simulator. Recorded acknowledgments or failures update the shared state and every interface." width="100%">
+
+<p align="center"><sub><a href="docs/assets/architecture.svg">View the full-size architecture diagram</a></sub></p>
 
 | Layer | Implementation | Responsibility |
 | --- | --- | --- |
@@ -129,7 +143,15 @@ The prototype's **model calls, tool execution, state transitions, validation, pe
 | Exact order consent, atomic allocation, and durable command replay | A paused scenario clock and synthetic food-ready estimates |
 | Validated requests, acknowledgment handling, and visible failure recovery | A local kitchen simulator providing acknowledgments instead of physical kitchen systems |
 
-The replaceable boundary is the **kitchen input and execution layer**. A future adapter could translate real staff reports and point-of-sale / kitchen-display events into the existing command contracts, then map action requests and acknowledgments to the connected system. Vendor permissions, event semantics, freshness, and real preparation timings would still need integration work and validation.
+### Connect to the systems a restaurant already uses
+
+The replaceable boundary is the **kitchen input and execution layer**. A future adapter could translate staff reports and point-of-sale / kitchen-display data into the existing command contracts, then map supported action requests and acknowledgments back to the connected system.
+
+**Toast is a natural integration candidate.** Its documented APIs cover menus, orders, stock, and kitchen information. A Toast adapter could give DineOS the restaurant's actual menu and order context; available kitchen fulfillment data could help validate timing assumptions. Access depends on the integration and subscription. Toast's documented Kitchen API is read-only, so direct control of preparation sequences would need a separately supported workflow. See the [Toast API overview](https://dev.toasttab.com/doc/devguide/apiOverview.html) and [Kitchen API guide](https://doc.toasttab.com/doc/devguide/apiKitchenOverview.html).
+
+**Square is another candidate** for order context: its [Orders webhooks](https://developer.squareup.com/reference/square/orders/webhooks) expose order creation, updates, and fulfillment changes. An adapter could translate these into restaurant events, alongside staff-reported constraints such as a station becoming unavailable.
+
+These are proposed integration paths. No vendor adapter is included today; permissions, event freshness, execution support, and actual preparation timing must be validated for each restaurant.
 
 | Expansion path | What it could enable | What remains to build |
 | --- | --- | --- |
@@ -139,17 +161,6 @@ The replaceable boundary is the **kitchen input and execution layer**. A future 
 | **Measure the outcome** | Evaluate commitment reliability and coordinator workload | A restaurant pilot measuring missed promises, interventions, and recovery effort |
 
 These are expansion opportunities, not current integrations or measured outcomes. The current scope is one recognized diner, several seeded kitchen tickets, and a supervised restaurant planning loop. Payments, allergy verification, production identity, and physical hardware deployment are outside this build.
-
-## What this entry demonstrates
-
-Built for **[Agents, Everywhere](https://nyc.aitinkerers.org/hackathons/h_2KGgllpHf_k)**, with evidence mapped to the event's judging criteria:
-
-| Criterion | Evidence in the build |
-| --- | --- |
-| Core requirements & functionality | A complete path from guest intent to exact confirmation and kitchen acknowledgment |
-| Innovation & theme alignment | The restaurant environment supplies the context, constraints, and actions that make the agent useful |
-| Technical execution & integration | Two model roles, shared durable state, guarded actions, acknowledgment handling, and recovery tests |
-| Usefulness & agentic experience | Contextual recommendations, proactive timing tradeoffs, restaurant-wide planning, and explicit human control |
 
 ## Try it locally
 
