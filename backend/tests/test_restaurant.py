@@ -176,10 +176,13 @@ def test_started_parallel_work_is_not_falsely_serialized():
 def test_changed_spoken_terms_require_renewed_review(repo):
     o=review(repo,'mushroom')
     with pytest.raises(Conflict):diner(repo,'confirm',offer_id=o['id'],offer_revision=o['revision'],terms_hash=o['terms_hash'],item_ids=['chicken'])
+    with pytest.raises(Conflict):diner(repo,'confirm',offer_id=o['id'],offer_revision=o['revision'],terms_hash=o['terms_hash'],ready_within_minutes=5)
 
 def test_relevant_event_work_is_durable_across_restart(repo):
     report(repo);restored=Repository(repo.path).snapshot()
     assert restored['planner']['status']=='queued';assert restored['capacity']['value']==1
+    do(repo,'reset');diner(repo,'preference',ready_within_minutes=8)
+    assert Repository(repo.path).snapshot()['planner']['status']=='queued'
 
 def test_background_event_model_validator_and_simulator_ack_integrate(tmp_path):
     import time

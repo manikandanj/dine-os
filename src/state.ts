@@ -1,6 +1,8 @@
 import type {Snapshot,Command,Offer} from './types';
 export const uid=(prefix='cmd')=>`${prefix}_${crypto.randomUUID().replaceAll('-','')}`;
 export function acceptSnapshot(current:Snapshot|null,next:Snapshot):Snapshot {
+  // Freshness expires with wall-clock time even when no operational command occurs.
+  if(current&&next.revision===current.revision&&next.epoch===current.epoch&&current.capacity?.fresh&&!next.capacity?.fresh)return next;
   return !current || next.revision>current.revision ? next : current;
 }
 export function commandFor(s:Snapshot,kind:string,payload:object,source:Command['source']='coordinator'):Command {

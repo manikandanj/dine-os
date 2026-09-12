@@ -2,10 +2,11 @@ import {RealtimeVoiceClient} from '../src/realtime';
 import {getSnapshot,sendCommand,generation} from '../src/api';
 import {uid} from '../src/state';
 import type {Snapshot,Binding} from '../src/types';
+let interruptNextResponse=false;
 let state:Snapshot;let client:RealtimeVoiceClient|null=null;let audioContext:AudioContext|null=null;
 const bindings=new Map<string,Binding>();const output=document.querySelector('#result')!;
 const log=(message:string)=>{output.textContent+='\n'+new Date().toISOString()+' '+message;};
-const buttons=['review','context','reconnect','stop'];
+const buttons=['review','context','interrupt','timing','reconnect','stop'];
 async function connect(){
  state=await getSnapshot();bindings.clear();audioContext=new AudioContext();
  const audio=audioContext.createMediaStreamDestination();
@@ -15,8 +16,9 @@ async function connect(){
   onResponseStarted:(id)=>{
    const b:Binding={epoch:state.epoch,version:state.state_version,ui:state.ui_revision,cancelled:false,ready:Promise.resolve()};
    b.ready=generation({command_id:uid('smoke_begin'),response_id:id,epoch:b.epoch,expected_state_version:b.version,expected_ui_revision:b.ui,cancelled:false});void b.ready.catch(()=>undefined);bindings.set(id,b);
+   if(interruptNextResponse){interruptNextResponse=false;client!.syncContext(state,'synthetic_interrupt_timing',true);log('PASS: requested cancellation of actual response '+id+' and queued updated narration.');}
   },
-  onInterruption:(id)=>{if(!id)return;const b=bindings.get(id);if(!b)return;b.cancelled=true;void generation({command_id:uid('smoke_cancel'),response_id:id,epoch:b.epoch,expected_state_version:b.version,expected_ui_revision:b.ui,cancelled:true});},
+  onInterruption:(id)=>{if(!id)return;const b=bindings.get(id);if(!b)return;b.cancelled=true;void generation({command_id:uid('smoke_cancel'),response_id:id,epoch:b.epoch,expected_state_version:b.version,expected_ui_revision:b.ui,cancelled:true}).catch(()=>undefined);},
   onToolCall:async(args,callId,responseId)=>{
    const b=bindings.get(responseId)!;await b.ready;if(b.cancelled)throw new Error('Interrupted');
    state=await sendCommand({command_id:'smoke_'+callId,epoch:b.epoch,expected_state_version:b.version,expected_ui_revision:b.ui,source:'realtime',kind:'intent',response_id:responseId,payload:args});
@@ -34,3 +36,7 @@ document.querySelector('#review')!.addEventListener('click',()=>{client?.verific
 document.querySelector('#context')!.addEventListener('click',()=>run(async()=>{state=await getSnapshot();client!.syncContext(state,'synthetic_external_check');client!.verificationText('Use the current authoritative state. Compare the chicken and mushroom bowl, explaining the current grill capacity and current timings. Do not confirm any order.');}));
 document.querySelector('#reconnect')!.addEventListener('click',()=>run(async()=>{client?.disconnect();await audioContext?.close();await connect();client!.verificationText('We reconnected. Show my current order status from restored application context. Do not create or confirm any order.');}));
 document.querySelector('#stop')!.addEventListener('click',()=>run(async()=>{log('TRANSPORT EVIDENCE: '+JSON.stringify(await client!.diagnostics()));client?.disconnect();await audioContext?.close();log('Stopped. No microphone used, no audio/transcript file saved.');buttons.forEach(id=>(document.querySelector('#'+id) as HTMLButtonElement).disabled=true);}));
+
+document.querySelector('#interrupt')!.addEventListener('click',()=>run(async()=>{state=await getSnapshot();client!.syncContext(state,'synthetic_interrupt_check',true);log('Injected authoritative context and requested cancellation of obsolete narration.');}));
+
+document.querySelector('#timing')!.addEventListener('click',()=>{interruptNextResponse=true;client?.verificationText('Please briefly explain the current order status. Do not create or confirm any new order.');});

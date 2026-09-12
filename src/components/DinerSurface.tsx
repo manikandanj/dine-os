@@ -18,13 +18,13 @@ export default function DinerSurface({s,busy,onIntent}:{s:Snapshot;busy:boolean;
  const order=s.order;
  const choose=(item:MenuItem)=>onIntent(intent('detail',{item_ids:[item.id]}));
  const review=(item:MenuItem)=>onIntent(intent('review',{item_ids:[item.id],modifiers:modifiers.filter(m=>item.modifiers.includes(m))}));
- if(reviewed&&s.offer){const offer=s.offer;return <section className="review-card surface-enter" aria-label="Review your order">
+ if(reviewed&&s.offer){const offer=s.offer;const canConfirm=selected.estimate_minutes===offer.terms.ready_in_minutes&&selected.fits_preference&&s.commitments_met===s.commitments_total;return <section className="review-card surface-enter" aria-label="Review your order">
   <div className="review-heading"><span className="icon-circle"><Utensils size={22}/></span><span className="eyebrow">Your choice, your call</span><h2>A quick review.</h2><p>One more look before we send it to the kitchen.</p></div>
   <div className="review-dish"><div><h3>{offer.terms.name}</h3><p>1 serving · {offer.terms.modifiers.length?offer.terms.modifiers.map(modifierName).join(', '):'As the kitchen makes it'}</p></div><strong>{money(offer.terms.price_cents)}</strong></div>
   <div className="review-facts"><div><Clock3 size={18}/><span>Food ready in<strong>~{offer.terms.ready_in_minutes} minutes</strong></span></div><div><CheckCircle2 size={18}/><span>Your preference<strong>Within {offer.terms.ready_within_minutes} minutes</strong></span></div></div>
   <p className="quiet-note">Synthetic estimate from the service checkpoint. No payment is collected.</p>
-  <button className="primary wide" disabled={busy} onClick={()=>onIntent(intent('confirm',confirmation(offer)))}>Confirm my order · {money(offer.terms.price_cents)}<ArrowRight size={17}/></button>
-  <div className="review-secondary"><button disabled={busy} className="text-button" onClick={()=>onIntent(intent('detail',{item_ids:[selected.id],modifiers:offer.terms.modifiers as VoiceIntent['modifiers']}))}><ArrowLeft size={14}/> Make a change</button><button disabled={busy} className="text-button" onClick={()=>onIntent(intent('decline'))}>Not this time</button></div>
+  <button className="primary wide" disabled={busy||!canConfirm} onClick={()=>onIntent(intent('confirm',confirmation(offer)))}>Confirm my order · {money(offer.terms.price_cents)}<ArrowRight size={17}/></button>
+  {!canConfirm&&<p className="inline-alert" role="status">Kitchen timing needs an update. Please review a fresh choice with the coordinator.</p>}<div className="review-secondary"><button disabled={busy} className="text-button" onClick={()=>onIntent(intent('detail',{item_ids:[selected.id],modifiers:offer.terms.modifiers as VoiceIntent['modifiers']}))}><ArrowLeft size={14}/> Make a change</button><button disabled={busy} className="text-button" onClick={()=>onIntent(intent('decline'))}>Not this time</button></div>
   <div className="consent-note"><ShieldCheck size={13}/>Nothing is reserved until you confirm.</div>
  </section>;}
  if(mode==='status'&&order){const done=order.status==='acknowledged';const failed=order.status==='failed';return <section className={`order-card surface-enter ${done?'complete':''}`} aria-label="Order status">

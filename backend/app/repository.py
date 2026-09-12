@@ -126,7 +126,7 @@ class Repository:
             elif cmd.kind=='replan':
                 self.bump(s,False)
                 self.event(s,'replan_requested','Coordinator requested a fresh decision.','coordinator')
-            if cmd.kind in ('report','replan','progress') or (cmd.kind=='pause' and not s['paused']) or (cmd.kind=='intent' and cmd.payload.get('action')=='confirm'):
+            if cmd.kind in ('report','replan','progress') or (cmd.kind=='pause' and not s['paused']) or (cmd.kind=='intent' and s['state_version']!=cmd.expected_state_version):
                 s['planner'].update(status='queued',message='A service event is waiting for a decision.')
             if cmd.kind=='pause' and s['paused']:s['planner'].update(status='paused',message='Paused by coordinator')
             self.save(c,s); result=decorated(s);self.remember(c,cmd.command_id,identity,result)
@@ -140,6 +140,7 @@ class Repository:
             offer=s['offer']
             if not offer or offer['status']!='pending' or (p.offer_id,p.offer_revision,p.terms_hash)!=(offer['id'],offer['revision'],offer['terms_hash']):raise Conflict('No matching active offer. Review the exact dish, modifiers, price and timing again.')
             if (p.item_ids and p.item_ids != [offer['terms']['item_id']]) or (p.modifiers and p.modifiers != offer['terms']['modifiers']):raise Conflict('Spoken confirmation changed the reviewed dish or modifiers. Review the new terms first.')
+            if p.ready_within_minutes is not None and p.ready_within_minutes!=offer['terms']['ready_within_minutes']:raise Conflict('The time preference changed. Review a new offer before confirming.')
             if offer['state_version']!=s['state_version']:raise Conflict('The kitchen changed after this offer. Please review again.')
             if s['order']:raise Conflict('This diner already has an order. Changes require staff assistance; the existing meal is preserved.')
             item=next(i for i in s['menu'] if i['id']==offer['terms']['item_id'])

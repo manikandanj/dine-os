@@ -43,3 +43,6 @@
  .review-card{padding:16px 25px}.review-heading>p{display:none}.review-dish{margin:10px 0 12px;padding:10px 0}.review-facts{margin-bottom:10px}.review-heading h2{font-size:27px;margin:4px 0}.review-card>.quiet-note{font-size:9px}.review-secondary{margin:6px 0}.review-heading .eyebrow{margin-bottom:4px}
  .dish-info h2{max-width:none;font-size:27px}.dish-description{max-width:none}.dish-info{padding:18px 23px}.dish-info .fit-copy{font-size:10px}.dish-info .quiet-note{font-size:8px}.hero-dish{min-height:290px}.voice-dock{margin-top:12px}.diner-footnote{padding:6px 3px}.comparison-intro .eyebrow{margin-bottom:5px}.comparison-intro h2{font-size:26px;margin:3px 0 5px}.comparison-intro p{font-size:10px;margin-bottom:10px}.compare-body h3{font-size:23px;min-height:53px}.compare-body{padding:12px 16px}.compare-body p{font-size:9px}
 }
+@media(min-width:901px) and (max-height:850px){
+ .comparison-intro p{display:none}.comparison-intro h2{margin-bottom:12px}.dish-art.small{height:100px;min-height:100px}.compare-body{padding:10px 16px}.compare-body h3{min-height:0}.compare-body .price-time{margin:5px 0}.comparison-footer{margin-top:6px}.comparison+.voice-dock{margin-top:6px}
+}

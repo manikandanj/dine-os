@@ -16,6 +16,7 @@ export default function App(){
  const voice=useRef<RealtimeVoiceClient|null>(null);const bindings=useRef(new Map<string,Binding>());const connectionEpoch=useRef(0);
  const [latency,setLatency]=useState<string>('');
  const apply=useCallback((next:Snapshot,origin='poll')=>{
+  setConnectionError(false);
   const old=ref.current;const accepted=acceptSnapshot(old,next);if(accepted===old)return;
   ref.current=accepted;setS(accepted);setConnectionError(false);
   const last=next.actions.at(-1);const oldLast=old?.actions.at(-1);
@@ -25,9 +26,9 @@ export default function App(){
   else voice.current?.syncContext(context(next),origin,origin!=='tool'&&newAck);
  },[]);
  useEffect(()=>{
-  let stopped=false;let polling=false;
+  let stopped=false;let polling=false;let healthPoll=0;
   Promise.all([getSnapshot(),getHealth()]).then(([state,h])=>{if(!stopped){apply(state,'restore');setHealth(h);}}).catch(()=>{if(!stopped)setConnectionError(true);});
-  const timer=window.setInterval(async()=>{if(stopped||polling)return;polling=true;try{const next=await getSnapshot();if(!stopped)apply(next);}catch{if(!stopped)setConnectionError(true);}finally{polling=false;}},500);
+  const timer=window.setInterval(async()=>{if(stopped||polling)return;polling=true;try{const next=await getSnapshot();if(!stopped)apply(next);if(++healthPoll%10===0){const h=await getHealth();if(!stopped)setHealth(h);}}catch{if(!stopped)setConnectionError(true);}finally{polling=false;}},500);
   return()=>{stopped=true;window.clearInterval(timer);voice.current?.disconnect();};
  },[apply]);
  const execute=useCallback(async(cmd:Command,origin='click')=>{

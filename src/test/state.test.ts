@@ -4,6 +4,10 @@ import {sendCommand,ApiError} from '../api';
 import type {Snapshot,Offer} from '../types';
 const state={epoch:'epoch_one',revision:4,state_version:2,ui_revision:3} as Snapshot;
 describe('DineOS operational and presentation boundaries',()=>{
+ it('reflects source expiry without letting an older poll revive stale input',()=>{
+  const fresh={...state,capacity:{fresh:true}} as Snapshot;const expired={...state,capacity:{fresh:false}} as Snapshot;
+  expect(acceptSnapshot(fresh,expired)).toBe(expired);expect(acceptSnapshot(expired,fresh)).toBe(expired);
+ });
  it('ignores old poll and retry results even across reset',()=>{
   expect(acceptSnapshot(state,{...state,revision:3})).toBe(state);
   const reset={...state,epoch:'fresh',revision:5,state_version:3,ui_revision:0};
