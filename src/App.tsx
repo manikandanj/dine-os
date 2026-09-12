@@ -170,7 +170,7 @@ export default function App(){
             <div className="tablet-content"><DinerSurface key={s.epoch} s={s} busy={busy} onIntent={sendIntent}/></div>
             <div className={`voice-dock ${active?'active':''}`}>
               <div className={`voice-orb ${voiceStatus}`}><AudioLines size={21}/></div>
-              <div className="voice-copy"><strong>{voiceStatus==='listening'?'I’m listening…':voiceStatus==='responding'?'Mira is with you…':active?'Mira is ready.':'Talk naturally with Mira'}</strong><p>{voiceDetail||(active?'Ask about a dish, change your mind, or simply say what sounds good.':'Try: “I’d like to try another chicken dish.”')}</p></div>
+              <div className="voice-copy" role="status"><strong>{voiceStatus==='listening'?'I’m listening…':voiceStatus==='responding'?'Mira is with you…':voiceStatus==='connected'?'Mira is ready.':active?'Connecting to Mira…':'Talk naturally with Mira'}</strong><p>{voiceDetail||(voiceStatus==='responding'?'You can interrupt or change your mind anytime.':active?'Ask about a dish or say what sounds good.':'Try: “I’d like to try something different.”')}</p></div>
               {active?<button className="voice-button end" onClick={()=>{connectionEpoch.current++;voice.current?.disconnect();setVoiceStatus('disconnected');}}><Square size={12}/> End</button>:<button className="voice-button" disabled={!health?.openai_key_configured} onClick={()=>void connectVoice()}><Mic size={16}/>{voiceStatus==='error'||voiceStatus==='disconnected'?'Reconnect':'Talk with Mira'}</button>}
             </div>
             {notice&&<div className="notice" role="status"><Info size={14}/><span>{notice}</span><button aria-label="Dismiss" onClick={()=>setNotice('')}><X size={13}/></button></div>}

@@ -171,6 +171,23 @@ def test_api_config_and_reconnect_restore_authoritative_context(tmp_path):
         assert client.post('/api/realtime/calls',headers={'Content-Type':'application/sdp'},content='v=0').status_code==503
         assert client.post('/api/commands',headers={'Origin':'https://untrusted.example'},json={}).status_code==403
 
+def test_voice_noise_settings_and_barge_in(repo,monkeypatch):
+    monkeypatch.delenv('DINEOS_NOISE_REDUCTION',raising=False)
+    monkeypatch.delenv('DINEOS_VAD_THRESHOLD',raising=False)
+    audio=realtime_session_config('gpt-realtime-2.1','marin',repo.snapshot())['audio']['input']
+    assert audio['noise_reduction']=={'type':'near_field'}
+    assert audio['turn_detection']['interrupt_response'] is True
+    assert audio['turn_detection']['threshold']==0.7
+    monkeypatch.setenv('DINEOS_NOISE_REDUCTION','far_field')
+    monkeypatch.setenv('DINEOS_VAD_THRESHOLD','0.8')
+    audio=realtime_session_config('gpt-realtime-2.1','marin',repo.snapshot())['audio']['input']
+    assert audio['noise_reduction']=={'type':'far_field'}
+    assert audio['turn_detection']['threshold']==0.8
+    monkeypatch.setenv('DINEOS_NOISE_REDUCTION','off')
+    assert realtime_session_config('gpt-realtime-2.1','marin',repo.snapshot())['audio']['input']['noise_reduction'] is None
+    monkeypatch.setenv('DINEOS_VAD_THRESHOLD','nan')
+    with pytest.raises(ValueError):realtime_session_config('gpt-realtime-2.1','marin',repo.snapshot())
+
 def test_planner_replay_has_one_requested_effect(repo):
     report(repo);s=repo.snapshot();p=plan(s)
     first=repo.apply_plan(s,p,'propose_preparation_sequence','test','one_response')

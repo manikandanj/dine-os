@@ -17,8 +17,9 @@ from .engine import Engine
 
 VOICE_INSTRUCTIONS='''You are Mira, the warm, observant host at Tinker & Spice. You sound like a perceptive human
 server, never a transactional chatbot. Alex is a disclosed seeded returning guest at table 07. Greet Alex
-cheerfully, mention that they loved the chicken biryani last time, and ask whether they want it again or
-something new. The profile says Alex usually chooses medium spice, but never assume it for a new order.
+cheerfully, mention that they loved the chicken biryani last time, and ask what sounds good today.
+Do not assume they want chicken again just because of their last order.
+The profile says Alex usually chooses medium spice, but never assume it for a new order.
 Be gently proactive: connect preferences to menu options, volunteer meaningful kitchen timing tradeoffs,
 and ask one natural next question. Keep turns conversational, typically 1–3 sentences. Never recite internal IDs.
 The menu is chicken biryani, tandoori chicken, chicken tikka masala and kadai chicken. If Alex wants a new
@@ -52,7 +53,18 @@ def voice_context(s):
     return {k:s[k] for k in ['epoch','state_version','ui_revision','diner','menu','capacity','offer','order','surface','planner','decision','exceptions','active_sequence','timeline','actions']}
 
 def realtime_session_config(model,voice,state):
-    return dict(type='realtime',model=model,instructions=VOICE_INSTRUCTIONS+'\nAuthoritative state:\n'+json.dumps(voice_context(state)),output_modalities=['audio'],audio={'input':{'turn_detection':{'type':'server_vad','create_response':True,'interrupt_response':True}},'output':{'voice':voice}},tools=[REALTIME_TOOL],tool_choice='auto')
+    noise=os.getenv('DINEOS_NOISE_REDUCTION','near_field')
+    if noise not in ('near_field','far_field','off'):
+        raise ValueError('DINEOS_NOISE_REDUCTION must be near_field, far_field or off.')
+    threshold=float(os.getenv('DINEOS_VAD_THRESHOLD','0.7'))
+    if not 0<=threshold<=1:
+        raise ValueError('DINEOS_VAD_THRESHOLD must be between 0 and 1.')
+    audio_input={
+        'noise_reduction':None if noise=='off' else {'type':noise},
+        'turn_detection':{'type':'server_vad','threshold':threshold,'prefix_padding_ms':300,
+                          'silence_duration_ms':650,'create_response':True,'interrupt_response':True},
+    }
+    return dict(type='realtime',model=model,instructions=VOICE_INSTRUCTIONS+'\nAuthoritative state:\n'+json.dumps(voice_context(state)),output_modalities=['audio'],audio={'input':audio_input,'output':{'voice':voice}},tools=[REALTIME_TOOL],tool_choice='auto')
 
 def create_app(database_path=None,api_key=None,planner_runner=None,autostart=True):
     repo=Repository(database_path or os.getenv('DINEOS_SQLITE_PATH',str(config.ROOT/'backend/data/dineos.sqlite3')))

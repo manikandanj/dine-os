@@ -16,6 +16,7 @@ export class RealtimeVoiceClient {
  private responding=false;private latestContext:object|null=null;private closed=false;
  private pendingNarration=false;private toolPending=0;private audioResponseId:string|null=null;
  private retiringResponseId:string|null=null;private narrationInstructions:string|undefined;
+ private userSpeaking=false;private awaitingResponse=false;private playingResponses=new Set<string>();
  constructor(private callbacks:Callbacks){}
  async connect(context:object, verification?:{stream:()=>Promise<MediaStream>;muteOutput:boolean;greet:boolean}):Promise<void>{
   this.latestContext=context;this.closed=false;this.callbacks.onStatus('requesting-microphone');
@@ -42,9 +43,18 @@ export class RealtimeVoiceClient {
   if(this.closed)return;
   await peer.setRemoteDescription({type:'answer',sdp:await response.text()});await open;
   this.sendContext(this.latestContext!,'connection_restore');this.callbacks.onLatency('connect',performance.now()-started);
-  this.callbacks.onStatus('connected');if(verification?.greet!==false)this.send({type:'response.create',response:{instructions:'Greet Alex warmly as Mira. Mention that they loved the chicken biryani last time, then naturally ask whether they want their favorite again or a different chicken dish today. Keep it to two short sentences.'}});
+  if(verification?.greet!==false)this.requestResponse('Greet Alex warmly as Mira. Mention that they loved the chicken biryani last time, then ask what sounds good today. Do not assume they want chicken again. Keep it to two short sentences.');
+  else this.resumeListening();
  }
  private send(event:object){if(this.channel?.readyState==='open'&&!this.closed)this.channel.send(JSON.stringify(event));}
+ private resumeListening(){
+  if(this.closed||this.userSpeaking||this.responding||this.awaitingResponse||this.toolPending||this.pendingNarration||this.retiringResponseId||this.playingResponses.size)return;
+  this.callbacks.onStatus('connected');
+ }
+ private requestResponse(instructions?:string){
+  this.awaitingResponse=true;this.callbacks.onStatus('responding');
+  this.send(instructions?{type:'response.create',response:{instructions}}:{type:'response.create'});
+ }
  private sendContext(context:object,reason:string){this.send({type:'conversation.item.create',item:{type:'message',role:'user',content:[{type:'input_text',text:`[Authoritative DineOS state update: ${reason}. Context only; never consent.] ${JSON.stringify(context)}`}]}});}
  syncContext(context:object,reason='external_update',announce=false){
   this.latestContext=context;
@@ -53,9 +63,9 @@ export class RealtimeVoiceClient {
   this.flushNarration();
  }
  private flushNarration(){
-  if(!this.pendingNarration||this.responding||this.toolPending||this.retiringResponseId||this.closed)return;
+  if(!this.pendingNarration||this.userSpeaking||this.responding||this.awaitingResponse||this.toolPending||this.retiringResponseId||this.closed)return;
   const instructions=this.narrationInstructions;this.pendingNarration=false;this.narrationInstructions=undefined;
-  this.send(instructions?{type:'response.create',response:{instructions}}:{type:'response.create'});
+  this.requestResponse(instructions);
  }
  private async handleToolCall(event:ServerEvent){
   const id=event.call_id??event.item?.call_id;const name=event.name??event.item?.name;
@@ -75,36 +85,54 @@ export class RealtimeVoiceClient {
    this.pendingNarration=true;
   }
   this.flushNarration();
+  this.resumeListening();
  }
  private async handleEvent(e:ServerEvent){
   if(this.closed)return;
-  if(e.type==='response.created'&&e.response?.id){this.activeResponseId=e.response.id;this.audioResponseId=e.response.id;this.responding=true;this.callbacks.onResponseStarted(e.response.id);this.callbacks.onStatus('responding');}
-  else if(e.type==='input_audio_buffer.speech_started'){this.invalidateResponse();this.pendingNarration=false;this.narrationInstructions=undefined;this.callbacks.onStatus('listening');}
-  else if(e.type==='input_audio_buffer.speech_stopped'){this.callbacks.onStatus('responding');}
+  if(e.type==='response.created'&&e.response?.id){this.awaitingResponse=false;this.activeResponseId=e.response.id;this.audioResponseId=e.response.id;this.responding=true;this.callbacks.onResponseStarted(e.response.id);this.callbacks.onStatus('responding');}
+  else if(e.type==='input_audio_buffer.speech_started'){
+   this.userSpeaking=true;this.awaitingResponse=false;this.invalidateResponse();
+   this.callbacks.onStatus('listening');
+  }
+  else if(e.type==='input_audio_buffer.speech_stopped'){
+   this.userSpeaking=false;this.awaitingResponse=true;this.callbacks.onStatus('responding');
+  }
+  else if(e.type==='output_audio_buffer.started'&&e.response_id){
+   if(this.cancelled.has(e.response_id))return;
+   this.playingResponses.add(e.response_id);this.callbacks.onStatus('responding');
+   void this.audio?.play().catch(()=>undefined);
+  }
+  else if((e.type==='output_audio_buffer.stopped'||e.type==='output_audio_buffer.cleared')&&e.response_id){
+   this.playingResponses.delete(e.response_id);this.resumeListening();
+  }
   else if(e.type==='response.function_call_arguments.done'||e.type==='response.output_item.done')await this.handleToolCall(e);
   else if(e.type==='response.output_audio.delta'||e.type==='response.output_audio_transcript.delta'){
    const id=e.response_id??this.audioResponseId;if(id&&!this.cancelled.has(id))void this.audio?.play().catch(()=>undefined);
   }else if(e.type==='response.done'){
-   if(e.response?.id===this.retiringResponseId){this.retiringResponseId=null;this.flushNarration();return;}
+   if(e.response?.id===this.retiringResponseId){this.retiringResponseId=null;this.flushNarration();this.resumeListening();return;}
    if(e.response?.id&&e.response.id!==this.activeResponseId)return;
-   this.responding=false;this.activeResponseId=null;this.callbacks.onStatus('connected');
-   this.flushNarration();
+   // response.done ends generation; WebRTC audio may still be playing.
+   this.responding=false;this.activeResponseId=null;
+   this.flushNarration();this.resumeListening();
   }else if(e.type==='error'){
    const message=e.error?.message??'Voice session reported an error.';
-   if(!message.includes('no active response'))this.callbacks.onStatus('error',message);
+   if(!message.includes('no active response')){this.disconnect();this.callbacks.onStatus('error',message);}
   }
  }
  private invalidateResponse(){
-  if(this.activeResponseId){this.cancelled.add(this.activeResponseId);this.callbacks.onInterruption(this.activeResponseId);}
-  if(this.responding){this.retiringResponseId=this.activeResponseId;this.send({type:'response.cancel'});this.send({type:'output_audio_buffer.clear'});}
+  const id=this.activeResponseId??this.audioResponseId;
+  if(id&&!this.cancelled.has(id)){this.cancelled.add(id);this.callbacks.onInterruption(id);}
+  this.pendingNarration=false;this.narrationInstructions=undefined;
+  if(this.responding){this.retiringResponseId=this.activeResponseId;this.send({type:'response.cancel'});}
+  if(this.responding||this.playingResponses.size)this.send({type:'output_audio_buffer.clear'});
   this.audio?.pause();this.responding=false;this.activeResponseId=null;
  }
  // Used by the explicitly labeled synthetic live verification page, not a visible diner text UI.
- verificationText(text:string){this.send({type:'conversation.item.create',item:{type:'message',role:'user',content:[{type:'input_text',text}]}});this.send({type:'response.create'});}
+ verificationText(text:string){this.send({type:'conversation.item.create',item:{type:'message',role:'user',content:[{type:'input_text',text}]}});this.requestResponse();}
  async diagnostics(){let audioBytes=0;const stats=await this.peer?.getStats();stats?.forEach(r=>{if(r.type==='inbound-rtp'&&(r.kind==='audio'||r.mediaType==='audio'))audioBytes+=r.bytesReceived??0;});return {connection:this.peer?.connectionState,channel:this.channel?.readyState,inbound_audio_bytes:audioBytes};}
- interrupt(){this.invalidateResponse();}
+ interrupt(){this.invalidateResponse();this.resumeListening();}
  disconnect(){
-  this.invalidateResponse();this.closed=true;this.pendingNarration=false;this.retiringResponseId=null;this.narrationInstructions=undefined;
+  this.invalidateResponse();this.closed=true;this.pendingNarration=false;this.retiringResponseId=null;this.narrationInstructions=undefined;this.userSpeaking=false;this.awaitingResponse=false;this.playingResponses.clear();
   this.microphone?.getTracks().forEach(t=>t.stop());this.channel?.close();this.peer?.close();
   this.audio?.pause();if(this.audio)this.audio.srcObject=null;
   this.channel=null;this.peer=null;this.microphone=null;this.callbacks.onStatus('disconnected');

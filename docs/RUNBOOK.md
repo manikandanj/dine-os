@@ -53,6 +53,21 @@ Start and stop voice with the visible button. Reconnect restores current structu
 
 The **Guest only** toggle shows only the diner experience. **Demo view** is an observer composite; a real diner would not see other tables’ operational details.
 
+### Voice in a noisy room
+
+The microphone stays open while Mira prepares a reply, uses a tool, and speaks. Start speaking to interrupt her and change your request. Tapping a dish or another control can also interrupt her. End/Reconnect recovers a failed voice session.
+
+The browser requests echo cancellation, noise suppression, and automatic gain control. Realtime also applies noise reduction and a higher speech activation threshold (`0.7`), with a 650 ms pause to finish a turn. These are starting settings for a noisy demo, not a guarantee of separating nearby speakers. Quieter speech may need a lower threshold.
+
+- Start with a headset microphone close to your mouth. In macOS **System Settings → Sound → Input**, select the intended microphone, then reconnect voice; selecting headphones for output alone does not select their microphone.
+- Set `DINEOS_NOISE_REDUCTION=near_field` for a headset (the default), or `far_field` for the Mac's built-in microphone. `off` disables the Realtime filter.
+- Set `DINEOS_VAD_THRESHOLD` between `0` and `1`. Raise it cautiously if room noise triggers turns; lower it if Mira misses your speech. It detects speech activity, not the identity of the speaker.
+- If the browser offers macOS **Mic Mode → Voice Isolation**, enable it. Availability varies by app. Headphone ANC and microphone noise filtering serve different purposes; ANC alone does not clean up what Mira hears.
+
+After changing backend settings or updating this voice code, stop/start `./scripts/start`, reload the page, and reconnect. Starting the app resets the demo to the opening scene. Test one exchange in the actual hall before recording. If surrounding conversations still trigger turns while the mic is open, a push-to-talk interaction would provide more control over when audio is accepted.
+
+References: [OpenAI noise reduction and session controls](https://platform.openai.com/docs/api-reference/realtime), [speech detection tuning](https://developers.openai.com/api/docs/guides/realtime-vad), [macOS Mic Modes](https://support.apple.com/guide/mac-help/mchle82b42f0/mac).
+
 ## Reset and recover
 
 The subtle restart icon in the top-right invalidates old offers/actions, reseeds this app, and starts a fresh voice session if voice was connected. Starting the app also reseeds the opening scene automatically. The shell equivalent targets only a verified DineOS service:
@@ -75,6 +90,8 @@ Coordinator controls expand below the kitchen panel: pause/resume, one-decision 
 | `DINEOS_PLANNER_MODEL` | `gpt-5-mini`; separate server-side Responses planner |
 | `DINEOS_REALTIME_MODEL` | `gpt-realtime-2.1`; browser WebRTC voice |
 | `DINEOS_VOICE` | `marin` |
+| `DINEOS_NOISE_REDUCTION` | `near_field` for a headset; `far_field` for a laptop mic; `off` to disable |
+| `DINEOS_VAD_THRESHOLD` | `0.7`; speech activation threshold from `0` to `1` |
 | `DINEOS_SQLITE_PATH` | `backend/data/dineos.sqlite3` |
 | `DINEOS_ALLOWED_ORIGIN` | `http://127.0.0.1:5174`; starter overrides for chosen frontend port |
 | `DINEOS_API_PROXY` | `http://127.0.0.1:8001`; starter sets matching backend port |
