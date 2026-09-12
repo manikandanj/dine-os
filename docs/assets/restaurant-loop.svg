@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Intelligence, right where service happens</title>
+  <desc id="desc">At the table, Mira connects conversation and visual choices to shared restaurant state. DineOS plans preparation sequences using kitchen facts and guest commitments. Validated requests go to the kitchen simulator, whose acknowledgment updates shared state. A human coordinator supervises, corrects, pauses, and overrides.</desc>
+  <defs><marker id="arrow" markerWidth="7" markerHeight="7" refX="5.5" refY="3.5" orient="auto-start-reverse"><path d="M0 0L7 3.5L0 7" fill="none" stroke="#A78E70" stroke-width="1.3"/></marker></defs>
+  <rect width="1200" height="660" rx="24" fill="#F8F4EC"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="48" y="53" fill="#9A6A3E" font-size="14" font-weight="bold" letter-spacing="3">THE RESTAURANT IS THE INTERFACE</text>
+    <text x="48" y="100" fill="#30232B" font-family="Georgia, serif" font-size="36">Intelligence, right where service happens.</text>
+    <g stroke="#A78E70" stroke-width="2" marker-start="url(#arrow)" marker-end="url(#arrow)">
+      <path d="M358 290H413"/><path d="M787 290H842"/><path d="M600 421V475"/>
+    </g>
+    <rect x="48" y="179" width="304" height="231" rx="18" fill="#FFFFFF" stroke="#E3D9CB"/>
+    <circle cx="89" cy="221" r="19" fill="#F0E3C8"/><text x="89" y="228" text-anchor="middle" fill="#805927" font-size="20">01</text>
+    <text x="120" y="229" fill="#30232B" font-size="24" font-weight="bold">At the table</text>
+    <text x="72" y="278" fill="#30232B" font-size="21">Mira · guest-facing AI</text>
+    <text x="72" y="314" fill="#72676A" font-size="19">Preferences → visual choices</text>
+    <text x="72" y="344" fill="#72676A" font-size="19">Exact review → guest consent</text>
+    <text x="72" y="384" fill="#9A6A3E" font-size="14" font-weight="bold" letter-spacing="1">VOICE + DINER TABLET</text>
+    <rect x="422" y="157" width="356" height="260" rx="22" fill="#32172D"/>
+    <text x="600" y="201" text-anchor="middle" fill="#EDC66D" font-size="14" font-weight="bold" letter-spacing="3">THE ORCHESTRATOR</text>
+    <text x="600" y="250" text-anchor="middle" fill="#FFF9EF" font-family="Georgia, serif" font-size="42">DineOS</text>
+    <text x="600" y="286" text-anchor="middle" fill="#F5EDE5" font-size="21">Restaurant planning agent</text>
+    <path d="M463 309H737" stroke="#634758"/>
+    <text x="600" y="344" text-anchor="middle" fill="#DFCDD8" font-size="19">Guest promises + kitchen facts</text>
+    <text x="600" y="376" text-anchor="middle" fill="#EDC66D" font-size="18" font-weight="bold">Observe → plan → act → verify</text>
+    <rect x="848" y="179" width="304" height="231" rx="18" fill="#FFFFFF" stroke="#E3D9CB"/>
+    <circle cx="889" cy="221" r="19" fill="#E2EBE2"/><text x="889" y="228" text-anchor="middle" fill="#3A6653" font-size="20">02</text>
+    <text x="920" y="229" fill="#30232B" font-size="24" font-weight="bold">In the kitchen</text>
+    <text x="872" y="278" fill="#30232B" font-size="21">Capacity · tickets · progress</text>
+    <text x="872" y="314" fill="#72676A" font-size="19">Validated action requests in</text>
+    <text x="872" y="344" fill="#72676A" font-size="19">Acknowledged results out</text>
+    <text x="872" y="384" fill="#3A6653" font-size="14" font-weight="bold" letter-spacing="1">SIMULATED IN THIS BUILD</text>
+    <rect x="294" y="485" width="612" height="108" rx="18" fill="#EEE5D9"/>
+    <circle cx="336" cy="523" r="17" fill="#D8C8B3"/><text x="336" y="529" text-anchor="middle" fill="#644F38" font-size="17">03</text>
+    <text x="367" y="530" fill="#30232B" font-size="23" font-weight="bold">At the pass · human coordinator</text>
+    <text x="326" y="567" fill="#72676A" font-size="19">See the decision. Correct a fact. Pause or override.</text>
+    <text x="600" y="633" text-anchor="middle" fill="#72676A" font-size="17">One shared, versioned state connects every surface. People keep control.</text>
+  </g>
+</svg>

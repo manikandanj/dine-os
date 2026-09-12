@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="440" viewBox="0 0 1200 440" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">Tinker &amp; Spice — A restaurant that stays in sync.</title>
+  <desc id="desc">Powered by DineOS. An AI restaurant agent connecting guest intent, kitchen reality, and the people running service.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="440" gradientUnits="userSpaceOnUse"><stop stop-color="#211220"/><stop offset="1" stop-color="#482039"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#E9BC5C" stop-opacity=".16"/><stop offset="1" stop-color="#E9BC5C" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="1200" height="440" rx="24" fill="url(#bg)"/>
+  <circle cx="1020" cy="235" r="340" fill="url(#glow)"/>
+  <rect x="32" y="32" width="1136" height="376" rx="16" stroke="#EDC66D" stroke-opacity=".18"/>
+  <g font-family="Georgia, 'Times New Roman', serif">
+    <circle cx="87" cy="86" r="25" fill="#E9BC5C"/>
+    <text x="87" y="94" text-anchor="middle" fill="#30162B" font-size="23" font-weight="bold">t&amp;s</text>
+    <text x="128" y="93" fill="#FFF7E8" font-size="30" font-weight="bold">Tinker &amp; Spice</text>
+    <text x="63" y="206" fill="#FFF7E8" font-size="66" letter-spacing="-2">A restaurant that</text>
+    <text x="63" y="279" fill="#EDC66D" font-size="72" font-style="italic" letter-spacing="-2">stays in sync.</text>
+  </g>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="65" y="329" fill="#D9C9D4" font-size="22">Guest intent. Kitchen reality. One restaurant agent.</text>
+    <text x="65" y="377" fill="#B49CA9" font-size="13" font-weight="bold" letter-spacing="3">POWERED BY DINEOS · AGENTS, EVERYWHERE 2026</text>
+  </g>
+  <g stroke="#EAC36C" stroke-opacity=".22">
+    <circle cx="972" cy="225" r="123"/><circle cx="972" cy="225" r="94"/>
+    <path d="M972 125V177M883 276L930 249M1061 276L1014 249" stroke-width="2"/>
+  </g>
+  <circle cx="972" cy="225" r="53" fill="#EDC66D"/>
+  <path d="M952 225h40M972 205v40M958 211l28 28M958 239l28-28" stroke="#3A2031" stroke-width="2" stroke-linecap="round"/>
+  <g font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" text-anchor="middle">
+    <rect x="919" y="83" width="106" height="42" rx="21" fill="#FFF7E8"/><text x="972" y="109" fill="#3A2031">TABLE</text>
+    <rect x="818" y="278" width="130" height="42" rx="21" fill="#FFF7E8"/><text x="883" y="304" fill="#3A2031">KITCHEN</text>
+    <rect x="996" y="278" width="132" height="42" rx="21" fill="#FFF7E8"/><text x="1062" y="304" fill="#3A2031">SERVICE</text>
+  </g>
+  <circle cx="858" cy="167" r="4" fill="#EDC66D"/><circle cx="1094" cy="215" r="4" fill="#EDC66D"/><circle cx="980" cy="348" r="4" fill="#EDC66D"/>
+</svg>
