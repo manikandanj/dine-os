@@ -1,7 +1,7 @@
 import { z } from 'zod';
 export const intentSchema=z.object({
   action:z.enum(['detail','compare','review','confirm','decline','preference','clarify','status']),
-  item_ids:z.array(z.enum(['chicken','mushroom','soup'])).max(2),modifiers:z.array(z.enum(['sauce_on_side','no_herbs'])).max(2),
+  item_ids:z.array(z.enum(['biryani','tandoori','tikka_masala','kadai_chicken'])).max(3),modifiers:z.array(z.enum(['mild','medium','spicy'])).max(1),
   ready_within_minutes:z.number().int().min(1).max(60).nullable(),party_size:z.number().int().min(1).max(12).nullable(),
   offer_id:z.string().nullable(),offer_revision:z.number().int().nullable(),terms_hash:z.string().nullable(),question:z.string().max(240).nullable()
 }).strict();
@@ -16,7 +16,7 @@ export interface Action {id:string;kind:'order'|'sequence';status:'requested'|'a
 export interface Event {id:string;kind:string;message:string;source_id:string;source_kind:string;simulated:boolean;observed_at:string;state_version:number}
 export interface Snapshot {
  epoch:string;state_version:number;revision:number;ui_revision:number;scenario_minute:number;seeded_at:string;paused:boolean;ack_mode:'auto'|'manual'|'fail_next';
- diner:{name:string;table:string;seeded:boolean;party_size:number|null;ready_within_minutes:number};
+ diner:{name:string;table:string;seeded:boolean;party_size:number|null;ready_within_minutes:number;visits?:number;last_order?:string;usual_spice?:string;memory_note?:string};
  menu:MenuItem[];capacity:{value:number|null;source_id:string;source_kind:string;observed_at:string;simulated:boolean;note:string;fresh:boolean};
  tickets:Ticket[];active_sequence:string[];timeline:Timing[];commitments_met:number;commitments_total:number;
  offer:Offer|null;order:{ticket_id:string;action_id:string;status:'requested'|'acknowledged'|'failed';preparation_status:string;terms:Terms;confirmed_at:string}|null;

@@ -7,8 +7,8 @@ class StrictModel(BaseModel):
 
 class VoiceIntent(StrictModel):
     action: Literal['detail','compare','review','confirm','decline','preference','clarify','status']
-    item_ids: list[Literal['chicken','mushroom','soup']] = Field(max_length=2)
-    modifiers: list[Literal['sauce_on_side','no_herbs']] = Field(max_length=2)
+    item_ids: list[Literal['biryani','tandoori','tikka_masala','kadai_chicken']] = Field(max_length=3)
+    modifiers: list[Literal['mild','medium','spicy']] = Field(max_length=1)
     ready_within_minutes: int | None = Field(ge=1, le=60)
     party_size: int | None = Field(ge=1, le=12)
     offer_id: str | None
@@ -22,8 +22,8 @@ class VoiceIntent(StrictModel):
             raise ValueError('Items and modifiers must be unique')
         if self.action in ('detail','review') and len(self.item_ids) != 1:
             raise ValueError('Select exactly one dish')
-        if self.action == 'compare' and len(self.item_ids) != 2:
-            raise ValueError('Compare exactly two dishes')
+        if self.action == 'compare' and len(self.item_ids) not in (2,3):
+            raise ValueError('Compare two or three dishes')
         if self.action == 'confirm' and not all((self.offer_id, self.offer_revision, self.terms_hash)):
             raise ValueError('Confirmation must reference the exact reviewed offer')
         return self
@@ -73,7 +73,7 @@ class PlannerProposal(StrictModel):
     observed_state_version: int
     sequence: list[str] = Field(max_length=8)
     rationale: str = Field(min_length=1,max_length=500)
-    alternative_item_id: Literal['chicken','mushroom','soup'] | None
+    alternative_item_id: Literal['biryani','tandoori','tikka_masala','kadai_chicken'] | None
     diner_message: str = Field(max_length=300)
     coordinator_question: str | None = Field(max_length=240)
 

@@ -14,7 +14,7 @@ for port in (a.backend_port,a.frontend_port):
 node=shutil.which('node')
 if not node:sys.exit('Node.js 22.12+ is required. See README setup.')
 if not (ROOT/'node_modules/vite/bin/vite.js').exists():sys.exit('Run pnpm install first.')
-env={**os.environ,'DINEOS_ALLOWED_ORIGIN':f'http://127.0.0.1:{a.frontend_port}','DINEOS_API_PROXY':f'http://127.0.0.1:{a.backend_port}'}
+env={**os.environ,'DINEOS_ALLOWED_ORIGIN':f'http://127.0.0.1:{a.frontend_port}','DINEOS_API_PROXY':f'http://127.0.0.1:{a.backend_port}','DINEOS_RESET_ON_START':'1'}
 if a.database:env['DINEOS_SQLITE_PATH']=str(Path(a.database).resolve())
 processes=[]
 def stop(*_):

@@ -179,7 +179,11 @@ class Repository:
             item=next(i for i in estimates(s) if i['id']==p.item_ids[0])
             if any(m not in item['modifiers'] for m in p.modifiers):raise ValueError('That modifier is not supported for this dish.')
             if item['stock']<1 or not item['fits_preference'] or not all(t['on_time'] for t in schedule(s)):
-                s['surface']=dict(mode='compare',item_ids=[item['id'],'mushroom'] if item['id']!='mushroom' else ['mushroom','soup'],message='Let’s find something that fits. This choice cannot currently meet the reviewed timing or availability.');return
+                alternative='kadai_chicken' if item['id']!='kadai_chicken' else 'biryani'
+                alternative_item=next(i for i in estimates(s) if i['id']==alternative)
+                s['surface']=dict(mode='compare',item_ids=[item['id'],alternative],message=f'{item["name"]} is running about {item["estimate_minutes"]} minutes. {alternative_item["name"]} brings a similar comfort sooner.');return
+            if len(p.modifiers)!=1:
+                s['surface']=dict(mode='detail',item_ids=p.item_ids,message='One last detail: would you like it mild, medium or spicy?',modifiers=p.modifiers);return
             s['offer_counter']+=1
             terms=dict(item_id=item['id'],name=item['name'],quantity=1,modifiers=p.modifiers,price_cents=item['price_cents'],ready_in_minutes=item['estimate_minutes'],ready_within_minutes=s['diner']['ready_within_minutes'],timing_basis='Synthetic estimate; food ready from the service checkpoint',party_size=1)
             s['offer']=dict(id='offer_'+uuid4().hex,revision=s['offer_counter'],terms=terms,terms_hash=digest(terms),state_version=s['state_version'],status='pending')
@@ -187,7 +191,7 @@ class Repository:
             self.event(s,'offer_reviewed',f'Reviewing {item["name"]}. Nothing reserved yet.',source)
         elif mode=='status':s['surface']=dict(mode='status',item_ids=[],message='Here’s the latest from the kitchen.' if s['order'] else 'You haven’t placed an order yet.')
         elif mode=='clarify':s['surface']=dict(mode='clarify',item_ids=p.item_ids,message=p.question or 'Do you mean food ready, or time to leave?')
-        elif mode=='preference':s['surface']=dict(mode='detail',item_ids=p.item_ids or ['chicken'],message='We’ll look for food ready within your preference. Estimates are based on the current kitchen plan.')
+        elif mode=='preference':s['surface']=dict(mode='detail',item_ids=p.item_ids or ['kadai_chicken'],message='We’ll look for food ready within your preference. Estimates are based on the current kitchen plan.')
         else:s['surface']=dict(mode=mode,item_ids=p.item_ids,message='A closer look.' if mode=='detail' else 'Good choices, side by side.')
         if mode in ('detail','preference'):
             selected=next(i for i in s['menu'] if i['id']==s['surface']['item_ids'][0])
@@ -265,7 +269,7 @@ class Repository:
             # Do not replace a newer diner surface with a proposal from an old UI context.
             if proposal.alternative_item_id and not s['order'] and s['ui_revision']==observed['ui_revision']:
                 self.invalidate(s);s['ui_revision']+=1
-                selected=s['surface']['item_ids'][0] if s['surface']['item_ids'] else 'chicken'
+                selected=s['surface']['item_ids'][0] if s['surface']['item_ids'] else 'kadai_chicken'
                 s['surface']=dict(mode='compare',item_ids=list(dict.fromkeys([selected,proposal.alternative_item_id])),message=proposal.diner_message)
             s['planner']=dict(status='complete',model=model,message='Decision validated',request_id=response_id)
             self.save(c,s);result=decorated(s);self.remember(c,plan_id,identity,result);return result

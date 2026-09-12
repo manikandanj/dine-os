@@ -11,9 +11,9 @@ reserves nothing. Propose a feasible sequence using every active ticket ID exact
 candidate timings are authoritative; do not invent physical capacity, prices, inventory or estimates.
 If the active sequence would miss a commitment but a supplied candidate meets all, choose that candidate.
 Prefer the current sequence when all commitments are already met. Put started tickets first; do not
-randomly rearrange otherwise equivalent tickets. When a diner's prospective grill choice misses their
-ready-within preference, propose a stocked alternative that fits, preferring the mushroom bowl over soup
-for a full meal. This is an offer, never consent. Explain the actual timing tradeoff concisely, without
+randomly rearrange otherwise equivalent tickets. When a diner's prospective choice misses their
+ready-within preference, propose a stocked alternative that fits, preferring kadai chicken as the close,
+quicker alternative to tikka masala. This is an offer, never consent. Explain the actual timing tradeoff concisely, without
 claiming any requested action is already acknowledged. If inputs are stale/unknown or no sequence can
 honor all commitments, use request_coordinator_update with a targeted question; preserve the active
 sequence. For only an alternative, use propose_diner_alternative. Never invent an acknowledgment.

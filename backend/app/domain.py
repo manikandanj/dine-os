@@ -16,18 +16,21 @@ def seed(version=0, revision=0):
     at=now()
     return dict(epoch=uuid4().hex, state_version=version, revision=revision, ui_revision=0,
         scenario_minute=0, seeded_at=at, paused=False, ack_mode='auto',
-        diner=dict(name='Alex',table='07',seeded=True,party_size=None,ready_within_minutes=12),
+        diner=dict(name='Alex',table='07',seeded=True,party_size=1,ready_within_minutes=15,
+            visits=8,last_order='Chicken biryani',usual_spice='medium',
+            memory_note='Loved the biryani last visit and usually chooses medium spice.'),
         menu=[
-            dict(id='chicken',name='Lemon-herb chicken',description='Flame-grilled chicken, silky potato purée, charred lemon and garden herbs.',price_cents=2400,station='grill',minutes=6,stock=6,tags=['From the grill','House favorite'],modifiers=['sauce_on_side','no_herbs']),
-            dict(id='mushroom',name='Wild mushroom bowl',description='Roasted mushrooms, warm ancient grains, whipped tahini and bright herb oil.',price_cents=2200,station='pass',minutes=6,stock=1,tags=['Plant-forward','A little lighter'],modifiers=['sauce_on_side','no_herbs']),
-            dict(id='soup',name='Roasted tomato soup',description='Slow-roasted tomatoes, basil oil and a slice of toasted sourdough.',price_cents=1400,station='pass',minutes=3,stock=4,tags=['Comforting','Small & satisfying'],modifiers=['no_herbs'])],
-        capacity=dict(value=2,source_id='seed_station_record',source_kind='recorded',observed_at=at,simulated=True,note='Two grill slots available.',fresh=True),
+            dict(id='biryani',name='Chicken biryani',description='Saffron basmati, tender chicken, caramelized onion and mint, served with cool cucumber raita.',price_cents=2600,station='pass',minutes=8,stock=5,tags=['Your last favorite','Aromatic'],modifiers=['mild','medium','spicy']),
+            dict(id='tandoori',name='Tandoori chicken',description='Yogurt-marinated chicken, roasted over high heat with mint chutney, lemon and pickled onion.',price_cents=2400,station='grill',minutes=14,stock=6,tags=['Smoky & bright','From the tandoor'],modifiers=['mild','medium','spicy']),
+            dict(id='tikka_masala',name='Chicken tikka masala',description='Charred chicken folded into a silky tomato, fenugreek and cream sauce, served with naan.',price_cents=2700,station='grill',minutes=36,stock=4,tags=['Rich & comforting','House classic'],modifiers=['mild','medium','spicy']),
+            dict(id='kadai_chicken',name='Kadai chicken',description='Wok-tossed chicken, tomato, peppers, toasted coriander and ginger, with basmati rice.',price_cents=2500,station='pass',minutes=10,stock=7,tags=['Bold & lively','Mira’s quick pick'],modifiers=['mild','medium','spicy'])],
+        capacity=dict(value=2,source_id='seed_station_record',source_kind='recorded',observed_at=at,simulated=True,note='Two tandoor positions available.',fresh=True),
         tickets=[
-            dict(id='A',table='03',name='Grilled steak',item_id=None,station='grill',minutes=6,ready_by=18,status='queued',source_kind='recorded',source_id='seed_ticket_A',observed_at=at,simulated=True),
-            dict(id='B',table='05',name='Charred trout',item_id=None,station='grill',minutes=4,ready_by=6,status='queued',source_kind='recorded',source_id='seed_ticket_B',observed_at=at,simulated=True),
-            dict(id='C',table='02',name='Tomato soup',item_id=None,station='pass',minutes=2,ready_by=5,status='started',source_kind='recorded',source_id='seed_ticket_C',observed_at=at,simulated=True)],
+            dict(id='A',table='03',name='Lamb seekh kebab',item_id=None,station='grill',minutes=6,ready_by=18,status='queued',source_kind='recorded',source_id='seed_ticket_A',observed_at=at,simulated=True),
+            dict(id='B',table='05',name='Paneer tikka',item_id=None,station='grill',minutes=4,ready_by=6,status='queued',source_kind='recorded',source_id='seed_ticket_B',observed_at=at,simulated=True),
+            dict(id='C',table='02',name='Garlic naan',item_id=None,station='pass',minutes=2,ready_by=5,status='started',source_kind='recorded',source_id='seed_ticket_C',observed_at=at,simulated=True)],
         active_sequence=['A','B','C'], offer=None, offer_counter=0, order=None, actions=[],events=[],
-        surface=dict(mode='welcome',item_ids=['chicken'],message='Good food. A little more in sync.'),
+        surface=dict(mode='welcome',item_ids=['biryani'],message='Welcome back. Your table remembers the good parts.'),
         decision=None, planner=dict(status='idle',model=None,request_id=None,message='Watching service'),exceptions=[])
 
 

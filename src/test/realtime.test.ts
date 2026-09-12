@@ -7,10 +7,10 @@ function make(){
  const internals=client as unknown as {send:(e:object)=>void;handleEvent:(e:object)=>Promise<void>;channel:unknown};
  const send=vi.spyOn(internals,'send');return {client,callbacks,send,handle:internals.handleEvent.bind(client),internals};
 }
-const call=(response='old')=>({type:'response.function_call_arguments.done',response_id:response,call_id:'call_1',name:'dineos_intent',arguments:JSON.stringify(intent('detail',{item_ids:['chicken']}))});
+const call=(response='old')=>({type:'response.function_call_arguments.done',response_id:response,call_id:'call_1',name:'dineos_intent',arguments:JSON.stringify(intent('detail',{item_ids:['kadai_chicken']}))});
 describe('Realtime generation and audio guards',()=>{
  it('does not cancel ordinary initial speech',async()=>{const m=make();await m.handle({type:'input_audio_buffer.speech_started'});expect(m.callbacks.onInterruption).not.toHaveBeenCalled();expect(m.send).not.toHaveBeenCalled();});
- it('binds a validated restaurant tool to its originating response',async()=>{const m=make();await m.handle({type:'response.created',response:{id:'old'}});await m.handle(call());expect(m.callbacks.onToolCall).toHaveBeenCalledWith(expect.objectContaining({item_ids:['chicken']}),'call_1','old');});
+ it('binds a validated restaurant tool to its originating response',async()=>{const m=make();await m.handle({type:'response.created',response:{id:'old'}});await m.handle(call());expect(m.callbacks.onToolCall).toHaveBeenCalledWith(expect.objectContaining({item_ids:['kadai_chicken']}),'call_1','old');});
  it('rejects a late interrupted tool even after a new response starts',async()=>{const m=make();await m.handle({type:'response.created',response:{id:'old'}});await m.handle({type:'input_audio_buffer.speech_started'});await m.handle({type:'response.created',response:{id:'new'}});await m.handle(call());expect(m.callbacks.onToolCall).not.toHaveBeenCalled();});
  it('never binds a tool missing response_id to a fresh response',async()=>{const m=make();await m.handle({type:'response.created',response:{id:'new'}});await m.handle({...call(),response_id:undefined});expect(m.callbacks.onToolCall).not.toHaveBeenCalled();});
  it('does not resurrect speech if interruption occurs while the tool awaits HTTP',async()=>{

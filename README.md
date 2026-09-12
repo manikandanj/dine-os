@@ -1,10 +1,10 @@
-# DineOS
+# Tinker & Spice
 
-**Guest commitments and kitchen decisions, in sync.**
+**A restaurant host who can feel the whole room.**
 
-DineOS is a restaurant-level agent for the coordinator who connects what guests want with what the kitchen can deliver. A diner speaks with the table, the restaurant agent proposes a preparation sequence, deterministic code validates it, and a kitchen simulator acknowledges the action. Every participant sees the same operational state.
+Tinker & Spice is a premium hackathon demo of DineOS, a restaurant-level agent that connects what a returning guest wants with what the kitchen can actually deliver. Mira remembers the useful parts of Alex's last visit, speaks like a warm human server, changes the diner tablet as the conversation moves, notices live timing tradeoffs and stays with the order until the kitchen acknowledges it.
 
-The demo combines a spacious diner surface and a compact coordinator view. It includes one recognized, explicitly seeded diner; three menu dishes; three existing tickets; and a timestamped simulated cook report reducing grill capacity.
+The demo clearly separates Alex's framed diner tablet from an observer-only context rail. The rail shows the seeded guest memory, Mira's current reasoning, live kitchen timings and the operational safeguards behind the conversation.
 
 ## Run locally
 
@@ -26,7 +26,7 @@ The copy command is for a fresh clone; preserve an existing `.env`. Set your own
 ./scripts/start
 ```
 
-Open **[http://127.0.0.1:5174/](http://127.0.0.1:5174/)**. The backend uses loopback port **8001**. The starter checks both ports and leaves existing services alone. Stop with Ctrl+C. To use other available ports:
+Open **[http://127.0.0.1:5174/](http://127.0.0.1:5174/)**. The backend uses loopback port **8001**. The starter checks both ports and leaves existing services alone. It also seeds the opening scene on every start, so a restart always returns to “Hey Alex.” Stop with Ctrl+C. To use other available ports:
 
 ```bash
 ./scripts/start --backend-port 8011 --frontend-port 5184
@@ -38,20 +38,22 @@ Without an API key, deterministic screens, commands, and tests run; live voice i
 
 ## Rehearse the loop
 
-1. Keep **Demo view** selected. Click **Reset service**, then **Talk to DineOS**.
-2. Say: “Just me. I’m interested in the chicken, with food ready within 12 minutes.” This is interest, not an order.
-3. Click **Simulate cook report**. The button sends a source-tagged fact, not a prewritten decision. The live planner should protect ticket B by moving it before A; the kitchen acknowledgment makes that plan active.
-4. Ask: “What fits my time now?” The chicken is $24 / ~16 minutes; the mushroom bowl is $22 / ~8 minutes. Those are synthetic food-ready estimates.
-5. Say: “I’ll take the mushroom bowl.” Review the exact dish, modifiers, price and timing, then **tap Confirm my order**.
-6. Show **Kitchen acknowledged**, four commitments on track, and the coordinator’s pause control.
+1. Keep **Demo view** selected and click **Talk with Mira**. Mira greets Alex by name and remembers the chicken biryani from the last visit.
+2. Say: “I want to try a different chicken dish. What do you recommend?” The tablet changes to three visual recommendations while the observer rail explains the use of context.
+3. Ask: “What is chicken tikka masala?” Mira explains it as the tablet moves to the dish. Say: “I’d like to go for it.”
+4. Mira should volunteer the real tradeoff: tikka masala is currently about **40 minutes**, while the similar-but-brighter kadai chicken is about **12 minutes**. The tablet shows both dishes side by side.
+5. Choose kadai chicken, then say **medium** when Mira asks about spice. Review the exact dish, side, price and timing, then tap **Yes, send my order**.
+6. Show the kitchen acknowledgment, the included basmati rice and Mira's natural “Would you like anything else?” close. Say “No, that's it for now.”
+
+The visible buttons mirror every voice step, so the full story is still demonstrable if microphone access or an API key is unavailable. **Simulate a rush** in the observer rail is an optional second beat showing how a cook report reaches both the planner and Mira.
 
 Start and stop voice with the visible button. Reconnect restores current structured state; it never resends an order. Clear voice confirmation is supported only after a server-recorded exact review. Tap confirmation is the deterministic recording path. If you change your mind, request a fresh review. Decline preserves any already-confirmed meal.
 
-The **Table view** toggle shows only the diner experience. **Demo view** is an observer composite; a real diner would not see other tables’ operational details.
+The **Guest only** toggle shows only the diner experience. **Demo view** is an observer composite; a real diner would not see other tables’ operational details.
 
 ## Reset and recover
 
-The browser’s **Reset service** invalidates old offers/actions, reseeds this app, and starts a fresh voice session if voice was connected. The shell equivalent targets only a verified DineOS service:
+The subtle restart icon in the top-right invalidates old offers/actions, reseeds this app, and starts a fresh voice session if voice was connected. Starting the app also reseeds the opening scene automatically. The shell equivalent targets only a verified DineOS service:
 
 ```bash
 ./scripts/reset

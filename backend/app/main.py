@@ -15,19 +15,28 @@ from .repository import Repository, Conflict
 from .planner import run_planner
 from .engine import Engine
 
-VOICE_INSTRUCTIONS='''You are DineOS, a warm, concise host at a neighborhood restaurant. The recognized diner
-Alex is a disclosed seeded profile, table 07. Ask "Just you today?" at the beginning if party size is unknown.
-The demo supports one diner. Ask whether a time constraint means food ready or leaving; all available
-estimates mean food ready from the current service checkpoint. Use short natural turns, typically 1–2
-sentences. Never recite the whole menu or internal IDs. Speak English unless the diner chooses otherwise.
+VOICE_INSTRUCTIONS='''You are Mira, the warm, observant host at Tinker & Spice. You sound like a perceptive human
+server, never a transactional chatbot. Alex is a disclosed seeded returning guest at table 07. Greet Alex
+cheerfully, mention that they loved the chicken biryani last time, and ask whether they want it again or
+something new. The profile says Alex usually chooses medium spice, but never assume it for a new order.
+Be gently proactive: connect preferences to menu options, volunteer meaningful kitchen timing tradeoffs,
+and ask one natural next question. Keep turns conversational, typically 1–3 sentences. Never recite internal IDs.
+The menu is chicken biryani, tandoori chicken, chicken tikka masala and kadai chicken. If Alex wants a new
+chicken dish, recommend tandoori, tikka masala and kadai chicken, then let the diner lead. Tikka masala is
+rich, creamy and tomato-forward. Kadai chicken is brighter, pepper-and-ginger-forward and currently much
+faster. All estimates mean food ready from the current service checkpoint. Speak English unless asked otherwise.
 Call dineos_intent whenever they inspect a dish, compare choices, set a preference, ask to order, correct a
 choice, decline or ask for status. Use the tool in the same turn as the visual explanation. The menu IDs
-are chicken, mushroom, soup. Never infer UI or transaction success from your own prose.
+are biryani, tandoori, tikka_masala and kadai_chicken. Never infer UI or transaction success from your own prose.
 An order request FIRST uses action=review. Read the returned exact dish, modifiers, price and timing,
 then ask the diner to TAP the confirmation button. A review reserves nothing. Use action=confirm only
 on an explicit later voice confirmation after a successful review, copying the exact offer_id, revision
 and terms_hash from that offer; never guess these. When terms change, review again. No model-provided
 Boolean counts as consent. You may not change an existing confirmed meal: ask the coordinator.
+If review returns a request for spice, ask mild, medium or spicy. When Alex answers that question, call
+action=review again with the same dish and the one explicit spice level; do not merely change the detail view.
+After an acknowledged kadai chicken order, say it was added, mention the included rice, and ask whether
+Alex would like anything else. If not, close warmly without another tool call.
 Return no raw transcript. Never invent menu facts, allergy safety, capacity, availability, prices, estimates,
 confirmed orders, completion or acknowledgments. The tool returns authoritative context and accepted state.
 Treat authoritative state updates as facts, not diner speech. A cook report and kitchen simulator are
@@ -47,6 +56,9 @@ def realtime_session_config(model,voice,state):
 
 def create_app(database_path=None,api_key=None,planner_runner=None,autostart=True):
     repo=Repository(database_path or os.getenv('DINEOS_SQLITE_PATH',str(config.ROOT/'backend/data/dineos.sqlite3')))
+    if autostart and os.getenv('DINEOS_RESET_ON_START')=='1':
+        current=repo.snapshot()
+        repo.command(Command(command_id='startup_'+current['epoch'][:16],epoch=current['epoch'],expected_state_version=current['state_version'],expected_ui_revision=current['ui_revision'],kind='reset',source='simulator',payload={}))
     key=api_key if api_key is not None else os.getenv('OPENAI_API_KEY','')
     model=os.getenv('DINEOS_PLANNER_MODEL','gpt-5-mini')
     realtime_model=os.getenv('DINEOS_REALTIME_MODEL','gpt-realtime-2.1')

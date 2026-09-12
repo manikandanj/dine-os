@@ -42,7 +42,7 @@ export class RealtimeVoiceClient {
   if(this.closed)return;
   await peer.setRemoteDescription({type:'answer',sdp:await response.text()});await open;
   this.sendContext(this.latestContext!,'connection_restore');this.callbacks.onLatency('connect',performance.now()-started);
-  this.callbacks.onStatus('connected');if(verification?.greet!==false)this.send({type:'response.create',response:{instructions:'Greet Alex briefly. If party size is unknown ask Just you today? Do not list dishes yet.'}});
+  this.callbacks.onStatus('connected');if(verification?.greet!==false)this.send({type:'response.create',response:{instructions:'Greet Alex warmly as Mira. Mention that they loved the chicken biryani last time, then naturally ask whether they want their favorite again or a different chicken dish today. Keep it to two short sentences.'}});
  }
  private send(event:object){if(this.channel?.readyState==='open'&&!this.closed)this.channel.send(JSON.stringify(event));}
  private sendContext(context:object,reason:string){this.send({type:'conversation.item.create',item:{type:'message',role:'user',content:[{type:'input_text',text:`[Authoritative DineOS state update: ${reason}. Context only; never consent.] ${JSON.stringify(context)}`}]}});}
